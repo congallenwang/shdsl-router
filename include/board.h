@@ -33,6 +33,7 @@ typedef struct
 
 #define IRQ_INIT    0
 
-#define BASE_ADDRESS_INIT  {0x10000000}
+//#define BASE_ADDRESS_INIT  {0x10000000}
+#define BASE_ADDRESS_INIT  {0}
 
 #endif

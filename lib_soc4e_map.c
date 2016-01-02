@@ -78,6 +78,7 @@ static int soc4e_load_firmware
 /* ============================= */
 /* Global function definition    */
 /* ============================= */
+int reg_init();
 VOID soc4e_sci_monitor_dump(const UINT8 *pData, UINT32 nLength);
 
 BOOL soc4e_decode_upstream(UINT8 ch, UINT16 msg_id, SDFE4_t * pMsg, UINT16 nLength)
@@ -219,7 +220,10 @@ BOOL soc4e_drv_init(const BOARD_Configuration_t* pDeviceConfiguration)
    
       PRINTF("SOC4E[%02d]: Init device driver, base 0x%x, irq %d\n\r", 
                device, init.reg_offset, init.irq_vector);
-               
+
+      //allen, bus init
+      reg_init();
+      
       if ( ioctl( fd[ device ], FIO_PEF24628E_DEV_INIT, (UINT32)&init ) )
       {
          PRINTF("SOC4E[%02d]: Device init failed\n\r", device);

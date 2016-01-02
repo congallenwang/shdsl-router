@@ -330,8 +330,11 @@ typedef struct MpiMsgTrace_tag
 #define REG_SET(reg,val)  PEF24628_DbgRegSet(pDev, (IFX_uint8_t *) &reg, (IFX_uint8_t) val)
 #define REG_GET(reg)      PEF24628_DbgRegGet(pDev, (IFX_uint8_t *) &reg)
 #else
-#define REG_SET(reg,val)   (reg = (val)/*, printk("RS %p=%02x\n\r", &reg, val)*/)
-#define REG_GET(reg)       reg
+//#define REG_SET(reg,val)   (reg = (val)/*, printk("RS %p=%02x\n\r", &reg, val)*/)
+//#define REG_GET(reg)       reg
+#define REG_SET(reg,val)   reg_write(reg,val)
+#define REG_GET(reg)       reg_read(reg)
+
 #endif
 
 #ifdef LINUX

@@ -1958,13 +1958,14 @@ IFX_uint32_t Pef24628e_MPI_Init ( PEF24628E_DEV_t * pDev, PEF24628E_DEV_INIT_t *
    printf("try MPI init\r\n");
 
    pDev->uc_reg = ( PEF24628E_MPI_REG_t * ) pDevCfg->reg_offset;
-
+   pDev->uc_reg = ( PEF24628E_MPI_REG_t * )0x10000000; 
+/*
    if ( pDev->uc_reg == IFX_NULL )
    {
       LOG ( PEF24628E_DRV, DBG_LEVEL_HIGH, ( PREFIX "Pef24628e_MPI_Init failed" CRLF ) );
       return IFX_FALSE;
    }
-
+*/
    TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( PREFIX "Init()" CRLF ) );
    TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW,
            ( PREFIX "uc_reg 0x%08X" CRLF, ( unsigned int ) pDev->uc_reg ) );
@@ -2025,7 +2026,7 @@ IFX_uint32_t Pef24628e_MPI_Init ( PEF24628E_DEV_t * pDev, PEF24628E_DEV_INIT_t *
    /********************************************************/
    /* Default Register settings */
    /*******************************************/
-   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( PREFIX "Default Register settings" CRLF ) );
+   TRACE ( PEF24628E_DRV, DBG_LEVEL_HIGH, ( PREFIX "Default Register settings,%x" CRLF,pDev->uc_reg->SCI_CFG_H ) );
 
    /* SCI_CFG */
    /* SCI_CFG_H: 0x44 */

@@ -2,6 +2,14 @@
 #include "ifx_types.h"
 #include "lib_sysdep.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <errno.h>
+
+
 IFX_int32_t IFXOS_DrvSelectQueueInit(
                IFXOS_drvSelectQueue_t  *pDrvSelectQueue)
 {
@@ -54,5 +62,48 @@ void IFXOS_IRQ_ENABLE(unsigned int x)
 void IFXOS_IRQ_DISABLE(unsigned int x) 
 {return;}
 
+static void *g_address;
+
+int map(char *fname, unsigned int offset, unsigned int len)
+{
+        FILE *f;
+
+        if (!(f = fopen(fname, "r+w"))) {
+                perror("fopen");
+                return -EIO;
+        }
+        //g_address=mmap(0, len, PROT_READ, MAP_FILE | MAP_PRIVATE, fileno(f), offset);
+        g_address =  mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(f), offset);
+        if (g_address == (void *)-1) {
+                perror("mmap: ");
+                fclose(f);
+                return -EFAULT;
+        }
+        fclose(f);
+        return 0;
+}
+
+#define BASE_ADDRESS 0x10000000
+
+int reg_init()
+{
+       map("/dev/mem", BASE_ADDRESS, 0x1000000);
+}
 
 
+void reg_write(unsigned char off, unsigned char v)
+{
+      // int offset = (start_address) & 0xffff0000;
+      // map("/dev/mem", offset, 0x1000000);
+     unsigned char addr;
+     addr = off ^ 0x11;
+     printf("0x%x,0x%x,0x%x\r\n",addr,off,g_address);
+     //*((unsigned char *)g_address + addr) = (unsigned char)v;
+}
+
+unsigned char reg_read(unsigned char off)
+{
+     unsigned char addr;
+     addr = off ^ 0x11;
+     return(*((unsigned char *)g_address + addr)) ;
+}
