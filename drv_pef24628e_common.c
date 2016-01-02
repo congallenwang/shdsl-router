@@ -1955,6 +1955,8 @@ IFX_uint32_t Pef24628e_MPI_Init ( PEF24628E_DEV_t * pDev, PEF24628E_DEV_INIT_t *
    IFX_uint8_t *ptr;
    IFX_uint32_t i;
 
+   printf("try MPI init\r\n");
+
    pDev->uc_reg = ( PEF24628E_MPI_REG_t * ) pDevCfg->reg_offset;
 
    if ( pDev->uc_reg == IFX_NULL )

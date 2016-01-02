@@ -430,6 +430,8 @@ INT Pef24628e_DevCreate ( void )
          LOG ( PEF24628E_DRV, DBG_LEVEL_HIGH, ( ERR_PREFIX "unable to create device." CRLF ) );
          goto PEF24628E_DEV_ERROR;
       }
+      else
+        printf("driver %s registered\r\n",buf);
    }
 
    return ( OK );

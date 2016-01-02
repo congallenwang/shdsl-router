@@ -12,7 +12,7 @@ DEPEND = $(patsubst %.c, %.d, $(SRC))
 
 CFLAGS += -I. -I$(MTD_UTIL_DIR)/include $(IFX_CFLAGS) -DBUILD_FROM_IFX_UTILITIES
 LDFLAGS += $(IFX_LDFLAGS)
-OBJS = main.o sys_noOSLib.o drv_pef24628e_common.o drv_pef24628e_noOS.o dummy.o
+OBJS = main.o sys_noOSLib.o drv_pef24628e_common.o drv_pef24628e_noOS.o dummy.o lib_soc4e_map.c
 
 TARGET_BIN += shdsl 
 

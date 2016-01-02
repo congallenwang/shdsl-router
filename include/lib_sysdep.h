@@ -1,14 +1,9 @@
 #ifndef SYS_LIB_H
 #define SYS_LIB_H
 
-typedef int INT;
-typedef char CHAR;
-typedef void VOID;
-typedef unsigned int UINT;
-typedef unsigned char UCHAR;
 
 #define PUBLIC
-#define LOCAL
+#define LOCAL                       static
 
 typedef int BOOL;
 #define TRUE 1
@@ -20,13 +15,31 @@ typedef int BOOL;
 #define OK 0
 #define ERROR -1
 
-typedef volatile unsigned int VUINT32;
-typedef unsigned int UINT32;
+typedef int INT;
+typedef void VOID;
+typedef unsigned int UINT;
+typedef unsigned char UCHAR;
+typedef char                        CHAR;
+typedef signed char                 INT8;
+typedef unsigned char               UINT8;
+typedef signed char volatile        VINT8;
+typedef unsigned char volatile      VUINT8;
 
-typedef unsigned char UINT8;
-typedef volatile unsigned char VUINT8;
+typedef signed short                INT16;
+typedef unsigned short              UINT16;
+typedef signed short volatile       VINT16;
+typedef unsigned short volatile     VUINT16;
+typedef signed int                  INT32;
+typedef unsigned int                UINT32;
+typedef signed int volatile         VINT32;
+typedef unsigned int volatile       VUINT32;
+
+typedef char*                       LPSTR;
+typedef const char*                 LPCSTR;
 
 #define NULL 0
+
+#define HUGE
 
 #define MAX_IRQ_NUM 8
 #define MAX_USER_TIMERS 10

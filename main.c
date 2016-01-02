@@ -41,7 +41,7 @@
 static BOARD_Configuration_t DeviceConfiguration =
 {
    PEF24628E_IF_MPI,
-   FALSE,
+   TRUE,
    4,
    PEF24628E_MAX_DEV_NUMBER,
    PEF24628E_MAX_LINE_NUMBER,   
@@ -139,15 +139,16 @@ RESTART:
    printf("Polling mode:   %d\n\r", DeviceConfiguration.bPollingMode);
    printf("SCI clock:      %d\n\r", DeviceConfiguration.nSciClock);
 
-#if 0
+
    status = soc4e_drv_init(&DeviceConfiguration);
 
    if (status != TRUE)
    {
       printf("soc4e_drv_init() failed ... \n\r");
-      goto ERROR_EXIT;
+      //goto ERROR_EXIT;
    }
 
+#if 0
    if (soc4e_lib_init(&DeviceConfiguration) != TRUE)
    {
       printf("soc4e_lib_init() failed ... \n\r");

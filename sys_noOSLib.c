@@ -335,11 +335,11 @@ VOID No_OS_Init()
    printf ("delay calibration\t: 1 us\n\r");
    printf ("System up.\r\n\nGoing to run user application ...\n\n\r");
    /* install driver */
-   if (nRet == SUCCESS)
-      nRet = No_OS_InitBoard ();
+//   if (nRet == SUCCESS)
+//      nRet = No_OS_InitBoard ();
    /* start user application */
-   if (nRet == SUCCESS)
-      nRet = usrApp ();
+   //if (nRet == SUCCESS)
+   nRet = usrApp ();
    /* shutdown board hardware */
    if (nRet == SUCCESS)
          nRet = No_OS_ShutdownBoard ();
@@ -932,6 +932,8 @@ INT  No_OS_Open  (CHAR* path, INT flags)
    INT i,j, nRet = ERR;
    INT len1, len2;
 
+   printf("try open %s\r\n",path);
+   
    if (path != NULL)
    {
       for (i = 0; i < NO_OS_MAXDEVS; i ++)

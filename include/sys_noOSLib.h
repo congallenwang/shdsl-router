@@ -151,11 +151,11 @@
 /* User Interface mapped to No OS prototypes */
 /* This mapping will be done to provide application code
    with common known open/close/read/write/ioctl interface */
-#define open(a,b)                   No_OS_Open((a), (b))
-#define close(a)                    No_OS_Close((a))
-#define ioctl(a,b,c)                No_OS_Ioctl((a), (b), (c))
-#define read(a,b,c)                 No_OS_Read((a), (b), (c))
-#define write(a,b,c)                No_OS_Write((a), (b), (c))
+//#define open                   No_OS_Open
+//#define close                    No_OS_Close
+#define ioctl                No_OS_Ioctl
+//#define read                 No_OS_Read
+//#define write                No_OS_Write
 #endif
 
 
