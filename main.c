@@ -105,7 +105,13 @@ void main(MAINARGS)
 #ifdef LINUX
 int main(int argc, char *argv[])
 {
-
+    //unsigned int i=0x12345678;
+    //unsigned int i=0x4;
+   // unsigned char* p;
+   // p=&i;
+   // printf("%x,%x,%x,%x\r\n",p[0],p[1],p[2],p[3]);
+   //we are in big endian, be careful!!!!
+   
    //prepare app driver wrapper
    No_OS_Init(); 
 

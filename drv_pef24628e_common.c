@@ -2929,6 +2929,7 @@ IFX_boolean_t Pef24628e_Send_IDC_Msg_Hook ( PEF24628E_DEV_t * pDev, const IFX_ui
    return (forwardMsg);
 }
 
+extern unsigned char g_pefdump;
 /**   
    Sends a frame to currenty active interface, MPI or SCI.
 
@@ -2949,8 +2950,9 @@ IFX_int32_t Pef24628e_Send_IDC_Msg ( PEF24628E_DEV_t * pDev, const IFX_uint8_t *
 #ifdef INCLUDE_MPI
    IFX_int32_t i;
 #endif
-#if 0
-   char msg_dump_buf[PEF24628E_MSG_SIZE*3 + 1];
+#if 1
+   //char msg_dump_buf[PEF24628E_MSG_SIZE*3 + 1];
+   char msg_dump_buf[5];
 #endif
 
    if ( nLength == 0 )
@@ -2960,8 +2962,7 @@ IFX_int32_t Pef24628e_Send_IDC_Msg ( PEF24628E_DEV_t * pDev, const IFX_uint8_t *
    if ( !pDev->bInit )
       return ( -1 );
 
-   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW,
-           ( PREFIX "Pef24628e_Send_IDC_Msg(%d)" CRLF, ( int ) nLength ) );
+  // TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW,( PREFIX "Pef24628e_Send_IDC_Msg(%d)" CRLF, ( int ) nLength ) );
 
    /* message must fit completly into the buffer */
    if ( nLength > PEF24628E_MSG_SIZE )
@@ -3000,15 +3001,35 @@ IFX_int32_t Pef24628e_Send_IDC_Msg ( PEF24628E_DEV_t * pDev, const IFX_uint8_t *
       memcpy ( ( void * ) pDev->TxFifo.pData, ( void * ) pSrc, ( IFX_uint32_t ) nLength );
    }
 
-#if 0
+#if 1
+if(g_pefdump)
+{
    TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW,
-           ( PREFIX "Pef24628e_Send_IDC_Msg(%d): " CRLF, ( int ) nLength ) );
+           ( "\r\n" PREFIX "Pef24628e_Send_IDC_Msg(%d): \n\r", ( int ) nLength ) );
    /* Dump IDC message */
+#if 0
    for ( i = 0; i < nLength; i++ )
    {
       sprintf(&msg_dump_buf[i*3], "%02X ", pDev->TxFifo.pData[i]);
    }
-   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "%s" CRLF, msg_dump_buf) );
+   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "%s\n\r", msg_dump_buf) );
+#else
+   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "[00]:") );   
+   for ( i = 0; i < nLength; i++ )
+   {
+      sprintf(&msg_dump_buf[0], "%02X ", pDev->TxFifo.pData[i]);
+      msg_dump_buf[4]=0x0;
+      TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "%s", msg_dump_buf) );
+      if(i%16==15)
+      {
+        TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "\r\n") );  
+        if(i<nLength-1)
+            TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "[%02X]:",16*(i/16+1)) );   
+      }
+   }
+   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "\r\n") );  
+#endif
+}
 #endif
 
 #ifdef INCLUDE_SCC_HDLC
@@ -3160,8 +3181,7 @@ IFX_int32_t Pef24628e_Send_IDC_Msg ( PEF24628E_DEV_t * pDev, const IFX_uint8_t *
 
       } while ( pDev->txErr );
 
-      TRACE ( PEF24628E_DRV, DBG_LEVEL_NORMAL,
-              ( PREFIX "Pef24628e_Send_IDC_Msg: sent %d bytes" CRLF, ( int ) nLength ) );
+     // TRACE ( PEF24628E_DRV, DBG_LEVEL_NORMAL,( PREFIX "Pef24628e_Send_IDC_Msg: sent %d bytes" CRLF, ( int ) nLength ) );
 
       if ( pDev->bSendIdcViaSciBridge )
       {
@@ -3194,29 +3214,50 @@ IFX_int32_t Pef24628e_Get_IDC_Msg ( PEF24628E_DEV_t * pDev, IFX_uint8_t * pDst,
                                     IFX_int32_t nLength )
 {
    IFX_uint16_t nBytes = 0;
-#if 0
+#if 1
    IFX_uint16_t i;
-   char msg_dump_buf[PEF24628E_MSG_SIZE*3 + 1];
+   //char msg_dump_buf[PEF24628E_MSG_SIZE*3 + 1];
+   char msg_dump_buf[5];
 #endif
 
    /* Not possible, if not initialized! */
    if ( !pDev->bInit )
       return ( -1 );
 
-   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW,
-           ( PREFIX "Pef24628e_Get_IDC_Msg: Retreiving frame" CRLF ) );
+  // TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW,( PREFIX "Pef24628e_Get_IDC_Msg: Retreiving frame" CRLF ) );
 
    if ( (pDev->pRxFifoWrite != pDev->pRxFifoRead) ||
         (pDev->bRxFifoFull == IFX_TRUE) )
    {
       nBytes = pDev->pRxFifoRead->nBytes;
 
-#if 0
+//allen
+#if 1
+if(g_pefdump)
+{
       TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, 
-         ( PREFIX "Pef24628e_Get_IDC_Msg[%02d] %d bytes:" CRLF, pDev->pRxFifoRead->nIndex, nBytes ) );
+         ( "\r\n" PREFIX "Pef24628e_Get_IDC_Msg[%02d] %d bytes: ", pDev->pRxFifoRead->nIndex, nBytes ) );
+#if 0
       for ( i = 0; i < nBytes; i++ )
          sprintf (&msg_dump_buf[i*3], "%02X ", pDev->pRxFifoRead->pData[i] ) ;
-      TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "%s" CRLF, msg_dump_buf ) );
+      TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "%s\n\r", msg_dump_buf ) );
+#else
+   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "\r\n[00]:") );   
+   for ( i = 0; i < nBytes; i++ )
+   {
+      sprintf(&msg_dump_buf[0], "%02X ", pDev->pRxFifoRead->pData[i]);
+      msg_dump_buf[4]=0x0;
+      TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "%s", msg_dump_buf) );
+      if(i%16==15)
+      {
+        TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "\r\n") );  
+        if(i<nBytes-1)
+            TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "[%02X]:",16*(i/16+1)) );   
+      }
+   }
+   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( _LOGGING_PREFIX "\r\n") );  
+#endif
+}
 #endif
 
       /* Definition of read policy: If frame is bigger than buffer, discard the 
@@ -3301,8 +3342,7 @@ IFX_int32_t Pef24628e_Get_IDC_Msg ( PEF24628E_DEV_t * pDev, IFX_uint8_t * pDst,
    }
 #endif /* INCLUDE_MPI */
 
-   TRACE ( PEF24628E_DRV, DBG_LEVEL_NORMAL,
-           ( PREFIX "Pef24628e_Get_IDC_Msg: received %d bytes" CRLF, nBytes ) );
+ //  TRACE ( PEF24628E_DRV, DBG_LEVEL_NORMAL,( PREFIX "Pef24628e_Get_IDC_Msg: received %d bytes" CRLF, nBytes ) );
 
 #if 0
    #ifdef DRV_DEBUG_TRACE_ENABLE   

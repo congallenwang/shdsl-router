@@ -135,7 +135,7 @@ LOCAL INT Pef24628e_Read ( PEF24628E_DEV_t * pDev, CHAR * pDst, INT nLength )
 {
    IFX_int32_t nBytes = 0;
 
-   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( PREFIX "read" CRLF ) );
+   //TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( PREFIX "read" CRLF ) );
 
    nBytes = Pef24628e_Get_IDC_Msg ( pDev, (IFX_uint8_t *)pDst, nLength );
 
@@ -162,7 +162,7 @@ LOCAL INT Pef24628e_Read ( PEF24628E_DEV_t * pDev, CHAR * pDst, INT nLength )
 LOCAL INT Pef24628e_Write ( PEF24628E_DEV_t * pDev, CHAR * pSrc, INT nLength )
 {
    IFX_int32_t nBytes = 0;
-   TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( PREFIX "write" CRLF ) );
+   //TRACE ( PEF24628E_DRV, DBG_LEVEL_LOW, ( PREFIX "write" CRLF ) );
 
    /* Send complete frame */
    nBytes = Pef24628e_Send_IDC_Msg ( pDev, (IFX_uint8_t*)pSrc, nLength );
@@ -378,7 +378,7 @@ INT Pef24628e_DevCreate ( void )
    DrvOp.read  = ( NO_OS_READ ) Pef24628e_Read;
    DrvOp.write = ( NO_OS_WRITE ) Pef24628e_Write;
 
-   SetTraceLevel ( PEF24628E_DRV, DBG_LEVEL_NORMAL );
+   SetTraceLevel ( PEF24628E_DRV, DBG_LEVEL_LOW );
    SetLogLevel ( PEF24628E_DRV, DBG_LEVEL_HIGH );
 
    printf( "%s" CRLF, &PEF24628E_WHATVERSION[4] );

@@ -44,6 +44,8 @@
 #define PRINTF printf
 #define WAIT usleep
 
+extern unsigned char g_pefdump;
+
 IFXOS_PRN_USR_MODULE_CREATE(PEF24624_LIB,IFXOS_PRN_LEVEL_HIGH);
 
 #ifdef UBOOT
@@ -245,7 +247,9 @@ BOOL soc4e_drv_init(const BOARD_Configuration_t* pDeviceConfiguration)
       }
    }
    
-
+   //wait for fw bring up
+   WAIT(100000);       
+   g_pefdump = 1;
 
    for(i=0;i<20;i++)
    {
@@ -276,15 +280,8 @@ BOOL soc4e_drv_init(const BOARD_Configuration_t* pDeviceConfiguration)
          TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ... \n\r"));
    }          
 
-      WAIT(100000);      
-      
-         /* InventoryRequest */
-   TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("CMD_INVENTORYREQUEST\n\r"));
-   for (device=0; device<pDeviceConfiguration->nMaxDevNumber; device++)
-   {
-      if (soc4e_send_idc_msg(device, CMD_INVENTORYREQUEST, NULL, 0) == FALSE)
-         TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ... \n\r"));
-   }           
+   WAIT(100000);      
+
    return ret;
 }
 
@@ -462,6 +459,17 @@ BOOL soc4e_drv_poll( UINT8 device, UINT16 idc_msg_id_expected )
 
    UINT32 retries = 100;
    UINT8 line = PEF24628E_MAX_LINES_PER_DEVICE * device;
+
+   struct EVT_PMD_LinkState* p_Evt_pmd_linkstate;
+   struct EVT_EOC_LinkState* p_Evt_eoc_linkstate;
+   struct EVT_EOC_Message* p_Evt_eoc_Message;
+   struct EOC_ReceiveMsg* p_Eoc_receivemsg;
+   struct EVT_PMD_MPairStatus* p_Evt_pmd_mpairstatus;
+   struct EVT_PMD_DelayCompState* p_Evt_pmd_delaycompstate;
+   struct EVT_PMD_MultiWireMapping* p_Evt_pmd_multiwiremapping;
+   struct ACK_Mdio_RegisterRead* p_ack_mdio_registerread;
+   ACK_PMD_StatusGet_t* p_ack_pmd_status;
+   ACK_PMD_PM_ParamGet_t* p_ack_pmd_pm_parameget;
    
    if(fd[ device ] < 0)
       return FALSE;
@@ -565,6 +573,111 @@ BOOL soc4e_drv_poll( UINT8 device, UINT16 idc_msg_id_expected )
          case ACK_INVENTORYREQUEST:
             PRINTF("SOC4E[%02d]: ACK_INVENTORYREQUEST\n\r", device);
             break;
+
+	  case EVT_PMD_LINKSTATE:
+	  	PRINTF("SOC4E[%02d]: EVT_PMD_LINKSTATE(%x)\n\r", device,EVT_PMD_LINKSTATE);
+		p_Evt_pmd_linkstate = (struct EVT_PMD_LinkState*)(pBuf+4);
+		PRINTF("SOC4E[%02d]: LinkNo=0x%x,State=0x%x,Condition=0x%x,Reason=0x%x\n\r", device,
+																				     SWAP_UINT32(p_Evt_pmd_linkstate->LinkNo),	
+																				     SWAP_UINT32(p_Evt_pmd_linkstate->State),
+																				     SWAP_UINT32(p_Evt_pmd_linkstate->Condition),
+																				     SWAP_UINT32(p_Evt_pmd_linkstate->Reason));
+		break;
+
+	  case ACK_PMD_STATUSGET:
+	  	PRINTF("SOC4E[%02d]: ACK_PMD_STATUSGET(%x)\n\r", device,ACK_PMD_STATUSGET);
+		p_ack_pmd_status = (ACK_PMD_StatusGet_t*)(pBuf+4);
+		PRINTF("SOC4E[%02d]: LinkNo=0x%x,datarate=0x%x(%d)\n\r", device,SWAP_UINT32(p_ack_pmd_status->LinkNo),
+																	SWAP_UINT32(p_ack_pmd_status->DataRate),
+																	SWAP_UINT32(p_ack_pmd_status->DataRate));
+		break;
+
+	  case ACK_PMD_PM_PARAMGET:
+			PRINTF("SOC4E[%02d]: ACK_PMD_PM_PARAMGET(%x)\n\r", device,ACK_PMD_PM_PARAMGET);			
+			p_ack_pmd_pm_parameget = (ACK_PMD_PM_ParamGet_t*)(pBuf+4);
+			PRINTF("SOC4E[%02d]: LinkNo=0x%x,Unit_ID=0x%x,Status_CS=0x%x, Status_NS=0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x\n\r",
+																	device,SWAP_UINT32(p_ack_pmd_pm_parameget->LinkNo),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Unit_ID),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Status_CS),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Status_NS),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_0),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_1),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_2),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_3),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_4),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_5),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_6),
+																	SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_7));
+																	
+			PRINTF("SOC4E[%02d]:0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x\n\r",
+										device,SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_8),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_9),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_10),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_11),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_12),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_13),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_14),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_15),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_16),
+										SWAP_UINT32(p_ack_pmd_pm_parameget->Counter_17));
+
+              break;
+
+	  case EVT_EOC_LINKSTATE:
+		PRINTF("SOC4E[%02d]: EVT_EOC_LINKSTATE(%x)\n\r", device,EVT_EOC_LINKSTATE);
+		p_Evt_eoc_linkstate = (struct EVT_EOC_LinkState*)(pBuf+4);
+		PRINTF("SOC4E[%02d]: LinkNo=0x%x,State=0x%x\n\r", device,SWAP_UINT32(p_Evt_eoc_linkstate->LinkNo),
+																SWAP_UINT32(p_Evt_eoc_linkstate->State));
+		break;
+
+	case EVT_EOC_MESSAGE:
+		PRINTF("SOC4E[%02d]: EVT_EOC_MESSAGE(%x)\n\r", device,EVT_EOC_MESSAGE);
+		p_Evt_eoc_Message = (struct EVT_EOC_Message*)(pBuf+4) ;
+		p_Eoc_receivemsg =(struct EOC_ReceiveMsg*)(p_Evt_eoc_Message->EocMessage);
+		PRINTF("SOC4E[%02d]: LinkNo=0x%x,SrcDst=0x%x,Length=0x%x,fail=0x%x,rme=0x%x,Octet_4=0x%x,Octet_3=0x%x,Octet_2=0x%x,EOC_Id=0x%x\n\r", device,SWAP_UINT32(p_Evt_eoc_Message->LinkNo),
+																						SWAP_UINT32(p_Eoc_receivemsg->SrcDst),
+																						SWAP_UINT32(p_Eoc_receivemsg->Length),
+																						SWAP_UINT32(p_Eoc_receivemsg->fail),
+																						SWAP_UINT32(p_Eoc_receivemsg->rme),
+																						SWAP_UINT32(p_Eoc_receivemsg->Octet_4),
+																						SWAP_UINT32(p_Eoc_receivemsg->Octet_3),
+																						SWAP_UINT32(p_Eoc_receivemsg->Octet_2),
+																						SWAP_UINT32(p_Eoc_receivemsg->EOC_Id));
+		break;
+
+	case EVT_PMD_MPAIRSTATUS:		
+		PRINTF("SOC4E[%02d]: EVT_PMD_MPAIRSTATUS(%x)\n\r", device,EVT_PMD_MPAIRSTATUS);
+		p_Evt_pmd_mpairstatus = (struct EVT_PMD_MPairStatus*)(pBuf+4);
+		PRINTF("SOC4E[%02d]: LinkNo=0x%x,State=0x%x\n\r", device,p_Evt_pmd_mpairstatus->LinkNo,
+																						p_Evt_pmd_mpairstatus->State);
+		break;
+		
+	case EVT_PMD_DELAYCOMPSTATE:		 
+		PRINTF("SOC4E[%02d]: EVT_PMD_DELAYCOMPSTATE(%x)\n\r", device,EVT_PMD_DELAYCOMPSTATE);
+		p_Evt_pmd_delaycompstate = (struct EVT_PMD_DelayCompState*)(pBuf+4);
+		PRINTF("SOC4E[%02d]: MpairLinkNo=0x%x,Link_0_Delay=0x%x,Link_1_Delay=0x%x,Link_2_Delay=0x%x,Link_3_Delay=0x%x\n\r", device,SWAP_UINT32(p_Evt_pmd_delaycompstate->MpairLinkNo),
+																						SWAP_UINT32(p_Evt_pmd_delaycompstate->Link_0_Delay),
+																						SWAP_UINT32(p_Evt_pmd_delaycompstate->Link_1_Delay),
+																						SWAP_UINT32(p_Evt_pmd_delaycompstate->Link_2_Delay),
+																						SWAP_UINT32(p_Evt_pmd_delaycompstate->Link_3_Delay));
+		break;
+
+	case EVT_PMD_MULTIWIREMAPPING:
+		PRINTF("SOC4E[%02d]: EVT_PMD_MULTIWIREMAPPING(%x)\n\r", device,EVT_PMD_MULTIWIREMAPPING);
+		p_Evt_pmd_multiwiremapping = (struct EVT_PMD_MultiWireMapping*)(pBuf+4);
+		PRINTF("SOC4E[%02d]: LinkNo=0x%x,Master_Prev=0x%x,Master_Crnt=0x%x,Slave_1=0x%x,Slave_2=0x%x,Slave_3=0x%x,InterleaveMaster=0x%x,InterleaveSlave1=0x%x,InterleaveSlave2=0x%x,InterleaveSlave3=0x%x\n\r", device,SWAP_UINT32(p_Evt_pmd_multiwiremapping->LinkNo),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->Master_Prev),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->Master_Crnt),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->Slave_1),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->Slave_2),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->Slave_3),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->InterleaveMaster),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->InterleaveSlave1),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->InterleaveSlave2),
+															     SWAP_UINT32(p_Evt_pmd_multiwiremapping->InterleaveSlave3));
+		break;
+
+		
             
          default :
 /*
@@ -845,3 +958,306 @@ static int soc4e_load_firmware(
    return TRUE;
 }
 #endif
+
+//todo, put to other file later
+void soc4e_CPE_init(UINT8 device,UINT8 ch)
+{
+	struct CMD_TC_FlowModify cmd_tc_flowmodify;
+	struct CMD_PMD_Reset cmd_pmd_reset;
+	struct CMD_ATM_TC_LinkModify cmd_atm_tc_linkmodify;
+	struct CMD_PMD_SpanProfileGroupConfig cmd_pmd_spanprofilegroupconfig;
+	struct CMD_IOP_Mode cmd_iop_mode;
+	struct CMD_PMD_SM_Control cmd_pmd_sm_control;
+	struct CMD_PMD_AlarmControl cmd_pmd_alarmcontrol;	
+	struct CMD_EOC_StatusRequestControl cmd_eoc_statusrequestcontrol;
+	struct CMD_LinkControl cmd_linkcontrol;
+	struct CMD_PMD_Control cmd_pmd_control;
+	struct CMD_EOC_Control cmd_eoc_control;
+	struct CMD_PMD_EndpointAlarmConfig cmd_pmd_endpointalarmconfig;
+	struct CMD_PMD_StatusGet cmd_pmd_statusget;
+	struct CMD_PMD_PM_ParamGet cmd_pmd_pm_paramget;
+	struct CMD_SegmentationReassemblyConfig cmd_segmentationreassemblyconfig;
+	struct CMD_Segmentation_VCC_Config cmd_segmentation_vcc_config;
+	struct CMD_SegmentationClassFilterConfig cmd_segmentationclassfilterconfig;
+	struct CMD_ReassemblyClassFilterConfig cmd_reassemblyclassfilterconfig;
+	struct CMD_xMII_Modify cmd_xmiimodify;
+	struct CMD_StatusPinsConfig cmd_statuspinconfig;
+	unsigned ret=0;
+       unsigned g_configed =1; 
+       unsigned g_TCMode = 1;//efm mode
+	
+       printf("****************call CPE_init***************************\r\n");
+
+	//config LED
+	cmd_statuspinconfig.Mode=SWAP_UINT32(STU_R_UNIT);
+	//rt_kprintf("**********************CMD_STATUSPINSCONFIG********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_STATUSPINSCONFIG, &cmd_statuspinconfig, sizeof(cmd_statuspinconfig)) == FALSE)
+      {
+      	g_configed = 0;
+      	TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+
+
+	//=================================================
+	//Configure xMII interface, only need do one time after fw download. CMD_xMII_Modify.
+	cmd_xmiimodify.LinkNo = SWAP_UINT32(ch);   
+	cmd_xmiimodify.Speed = SWAP_UINT32(0x01);//MII_100BT
+	cmd_xmiimodify.Duplex = SWAP_UINT32(0x01);//FULL_DUPLEX
+	cmd_xmiimodify.SMII_SyncMode = SWAP_UINT32(0x0);//NORMAL
+	cmd_xmiimodify.AltCollision = SWAP_UINT32(0x1);//enable
+	cmd_xmiimodify.RxDuringTx = SWAP_UINT32(0x1);//enable
+	cmd_xmiimodify.CollisionType = SWAP_UINT32(0x0);//COL_TYPE
+	cmd_xmiimodify.DiBitMode = SWAP_UINT32(0x0);//DIBIT_POS_1
+	//rt_kprintf("**********************CMD_XMII_MODIFY********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_XMII_MODIFY, &cmd_xmiimodify, sizeof(cmd_xmiimodify)) == FALSE)
+       {
+            g_configed = 0;
+      	    TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+	
+
+	 if(g_TCMode ==0)
+       {
+		cmd_tc_flowmodify.Link0_TC = (0x00000003); //only configure the target channel(or channels in bonding group) to ATM TC, other channels left to be SAME_TC_LAYER.
+		cmd_tc_flowmodify.Link1_TC = (0x00000003);
+		cmd_tc_flowmodify.Link2_TC = (0x00000003);
+		cmd_tc_flowmodify.Link3_TC = (0x00000003);
+       }
+	else
+	{
+		cmd_tc_flowmodify.Link0_TC = (0x00000001); //ÿefm mode
+		cmd_tc_flowmodify.Link1_TC = (0x00000001);
+		cmd_tc_flowmodify.Link2_TC = (0x00000001);
+		cmd_tc_flowmodify.Link3_TC = (0x00000001);
+	}
+	//rt_kprintf("**********************CMD_TC_FlowModify********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_TC_FLOWMODIFY, &cmd_tc_flowmodify, sizeof(cmd_tc_flowmodify)) == FALSE)
+       {
+            g_configed = 0;
+          	TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}	
+
+	
+	cmd_pmd_reset.LinkNo = ch;      //do this to all channels in a bonding group. Now all the channels are not bonded.	
+	//rt_kprintf("**********************CMD_PMD_RESET********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_PMD_RESET, &cmd_pmd_reset, sizeof(cmd_pmd_reset)) == FALSE)
+       {
+            g_configed = 0;
+          	TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+
+
+     if(g_TCMode ==0)
+     {    
+            cmd_atm_tc_linkmodify.LinkNo = SWAP_UINT32(ch);					//only confiugre the master channel.
+            cmd_atm_tc_linkmodify.IMA_Mode = SWAP_UINT32(0x00000000);
+            cmd_atm_tc_linkmodify.RX_HEC_Ow = SWAP_UINT32(0x00000000);
+            cmd_atm_tc_linkmodify.RX_HEC_Byte = SWAP_UINT32(0x00000000);
+            cmd_atm_tc_linkmodify.CellDelinMode = SWAP_UINT32(0x00000000);
+            cmd_atm_tc_linkmodify.CRD_AtmHdr =SWAP_UINT32(0x00000001);
+            cmd_atm_tc_linkmodify.CRD_AtmPL = SWAP_UINT32(0x0000006A);
+            cmd_atm_tc_linkmodify.RX_Alpha = SWAP_UINT32(0x00000006);
+            cmd_atm_tc_linkmodify.RX_Delta = SWAP_UINT32(0x00000007);
+            cmd_atm_tc_linkmodify.RX_descrambling = SWAP_UINT32(0x00000001);
+            cmd_atm_tc_linkmodify.TX_scrambling = SWAP_UINT32(0x00000001);
+            cmd_atm_tc_linkmodify.LI_M_PairPorts = SWAP_UINT32(0x03020100);		   //here configure the bonding group, or in case single pair then = 0.
+            //rt_kprintf("**********************CMD_ATM_TC_LINKMODIFY********************\r\n");
+            if (soc4e_send_idc_msg(device, CMD_ATM_TC_LINKMODIFY, &cmd_atm_tc_linkmodify, sizeof(cmd_atm_tc_linkmodify)) == FALSE)
+            {
+               g_configed = 0;
+            	TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+            }
+
+            /* FIX ME
+            	Configure SAR/AAL5 here,
+            CMD_SegmentationReassemblyConfig
+            CMD_Segmentation_VCC_Config
+            CMD_SegmentationClassFilterConfig
+            CMD_ReassemblyClassFilterConfig
+       */
+
+        	// SAR AAL5 configuration , interworking EFM <---> Utopia
+        	cmd_segmentationreassemblyconfig.LinkNo = SWAP_UINT32(ch); 
+        	cmd_segmentationreassemblyconfig.CPCS_Protocol = SWAP_UINT32(0x00000001); 
+        	cmd_segmentationreassemblyconfig.FCS_Present = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationreassemblyconfig.SegClassFilter = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationreassemblyconfig.SegDefAction = SWAP_UINT32(0x00000001); 
+        	cmd_segmentationreassemblyconfig.SegDef_VPI = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationreassemblyconfig.SegDef_VCI = SWAP_UINT32(0x00000020); 
+        	cmd_segmentationreassemblyconfig.ReaAddDefClassFilter = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationreassemblyconfig.CustomFilterOffset = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationreassemblyconfig.CustomFilterMask_1 = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationreassemblyconfig.CustomFilterMask_2 = SWAP_UINT32(0x00000000); 
+        	//rt_kprintf("**********************CMD_SEGMENTATIONREASSEMBLYCONFIG********************\r\n");
+        	if (soc4e_send_idc_msg(device, CMD_SEGMENTATIONREASSEMBLYCONFIG, &cmd_segmentationreassemblyconfig, sizeof(cmd_segmentationreassemblyconfig)) == FALSE)
+        	{
+        	        g_configed = 0;
+        		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+        	}        	
+
+        	cmd_segmentation_vcc_config.LinkNo = SWAP_UINT32(ch); 
+        	cmd_segmentation_vcc_config.VCC_id = SWAP_UINT32(0x00000000); 
+        	cmd_segmentation_vcc_config.VPI = SWAP_UINT32(0x00000000); 
+        	cmd_segmentation_vcc_config.VCI = SWAP_UINT32(0x00000020); 
+        	//rt_kprintf("**********************CMD_SEGMENTATION_VCC_CONFIG********************\r\n");
+        	if (soc4e_send_idc_msg(device, CMD_SEGMENTATION_VCC_CONFIG, &cmd_segmentation_vcc_config, sizeof(cmd_segmentation_vcc_config)) == FALSE)
+        	{
+        	        g_configed = 0;
+        		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+        	}        	 
+
+        	cmd_segmentationclassfilterconfig.LinkNo = SWAP_UINT32(ch); 
+        	cmd_segmentationclassfilterconfig.MAC_Address_1 = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationclassfilterconfig.MAC_Address_2 = SWAP_UINT32(0x00000001); 
+        	cmd_segmentationclassfilterconfig.VLAN_id = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationclassfilterconfig.VLAN_prio = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationclassfilterconfig.VCC_id = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationclassfilterconfig.CustomFilter_1 = SWAP_UINT32(0x00000000); 
+        	cmd_segmentationclassfilterconfig.CustomFilter_2 = SWAP_UINT32(0x00000000); 
+        	//rt_kprintf("**********************CMD_SEGMENTATIONCLASSFILTERCONFIG********************\r\n");
+        	if (soc4e_send_idc_msg(device, CMD_SEGMENTATIONCLASSFILTERCONFIG, &cmd_segmentationclassfilterconfig, sizeof(cmd_segmentationclassfilterconfig)) == FALSE)
+        	{
+        	        g_configed = 0;
+        		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+        	}
+
+        	cmd_reassemblyclassfilterconfig.LinkNo = SWAP_UINT32(ch); 
+        	cmd_reassemblyclassfilterconfig.VPI = SWAP_UINT32(0x00000000); 
+        	cmd_reassemblyclassfilterconfig.VCI = SWAP_UINT32(0x00000020); 
+        	//rt_kprintf("**********************CMD_REASSEMBLYCLASSFILTERCONFIG********************\r\n");
+        	if (soc4e_send_idc_msg(device, CMD_REASSEMBLYCLASSFILTERCONFIG, &cmd_reassemblyclassfilterconfig, sizeof(cmd_reassemblyclassfilterconfig)) == FALSE)
+        	{
+        	        g_configed = 0;
+        		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+        	}
+
+            //AAL5 config finished
+      	}
+      
+	cmd_pmd_spanprofilegroupconfig.LinkNo = SWAP_UINT32(ch); 					//only do this to master channel
+	cmd_pmd_spanprofilegroupconfig.WireInterface = SWAP_UINT32(0x00000000);
+	cmd_pmd_spanprofilegroupconfig.MinLineRate = SWAP_UINT32(0x0002EE00);
+	cmd_pmd_spanprofilegroupconfig.MaxLineRate = SWAP_UINT32(5696000);
+	cmd_pmd_spanprofilegroupconfig.MinLineSubRate = SWAP_UINT32(0x00000000);
+	cmd_pmd_spanprofilegroupconfig.MaxLineSubRate = SWAP_UINT32(0x00000000);
+	cmd_pmd_spanprofilegroupconfig.PSD = SWAP_UINT32(0x00000000);
+	cmd_pmd_spanprofilegroupconfig.TransMode = SWAP_UINT32(0x00000000);
+	cmd_pmd_spanprofilegroupconfig.RemoteEnabled = SWAP_UINT32(0x00000001);
+	cmd_pmd_spanprofilegroupconfig.PowerFeeding = SWAP_UINT32(0x00000000);
+#if 1
+	cmd_pmd_spanprofilegroupconfig.CC_TargetMarginDown = SWAP_UINT32(0x00000006);
+	cmd_pmd_spanprofilegroupconfig.WC_TargetMarginDown = SWAP_UINT32(0x00000006);
+	cmd_pmd_spanprofilegroupconfig.CC_TargetMarginUp = SWAP_UINT32(0x00000006);
+	cmd_pmd_spanprofilegroupconfig.WC_TargetMarginUp = SWAP_UINT32(0x00000006);
+       cmd_pmd_spanprofilegroupconfig.UsedTargetMargins = SWAP_UINT32(0x00000005);
+#else
+       cmd_pmd_spanprofilegroupconfig.CC_TargetMarginDown = 0x00000001;
+	cmd_pmd_spanprofilegroupconfig.WC_TargetMarginDown = 0x00000001;
+	cmd_pmd_spanprofilegroupconfig.CC_TargetMarginUp = 0x00000001;
+	cmd_pmd_spanprofilegroupconfig.WC_TargetMarginUp = 0x00000001;
+       cmd_pmd_spanprofilegroupconfig.UsedTargetMargins = 0x00000000;
+#endif
+	cmd_pmd_spanprofilegroupconfig.RefClock = SWAP_UINT32(0x00000004);
+	//disable line probe
+	//cmd_pmd_spanprofilegroupconfig.LineProbe = 0x00000002;
+	cmd_pmd_spanprofilegroupconfig.LineProbe = SWAP_UINT32(2);
+	cmd_pmd_spanprofilegroupconfig.PAM_Constellation = SWAP_UINT32(AUTO_PAM_SELECT);
+	cmd_pmd_spanprofilegroupconfig.CapListStyle = SWAP_UINT32(0x00000000);
+	cmd_pmd_spanprofilegroupconfig.PBO_Mode = SWAP_UINT32(0x00000000);
+	cmd_pmd_spanprofilegroupconfig.EPL_Mode = SWAP_UINT32(0x00000008);
+	cmd_pmd_spanprofilegroupconfig.PBO_Value = SWAP_UINT32(0x00000000);
+       cmd_pmd_spanprofilegroupconfig.PBO_Offset = SWAP_UINT32(0x00000000);
+       cmd_pmd_spanprofilegroupconfig.MaxBaudRate = SWAP_UINT32(0x00000000);
+    //rt_kprintf("**********************CMD_PMD_SPANPROFILEGROUPCONFIG********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_PMD_SPANPROFILEGROUPCONFIG, &cmd_pmd_spanprofilegroupconfig, sizeof(cmd_pmd_spanprofilegroupconfig)) == FALSE)
+	{
+	        g_configed = 0;
+		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+
+ 
+	cmd_iop_mode.LinkNo = ch;					//send to all channels in a bonding group
+	cmd_iop_mode.pmms_iop_mode = SWAP_UINT32(0x00000001);
+	cmd_iop_mode.vendor_spec_octets = SWAP_UINT32(0x35300100);
+	cmd_iop_mode.PHY_IOP_Mode = SWAP_UINT32(0x00000000);
+	cmd_iop_mode.PHY_Res_1 = SWAP_UINT32(0x00000000);
+	cmd_iop_mode.IDC_IOP_Mode = SWAP_UINT32(0x00000000);
+	cmd_iop_mode.IDC_Res_1 = SWAP_UINT32(0x00000000);    
+	//rt_kprintf("**********************CMD_IOP_MODE********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_IOP_MODE, &cmd_iop_mode, sizeof(cmd_iop_mode)) == FALSE)
+	{
+	        g_configed = 0;
+		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+	
+	cmd_pmd_sm_control.LinkNo = SWAP_UINT32(ch); 			   //send to master channel
+	cmd_pmd_sm_control.Control = SWAP_UINT32(0x00000001);
+	cmd_pmd_sm_control.NFC_Forwarding = SWAP_UINT32(0x00000000);
+	cmd_pmd_sm_control.ForceTraining = SWAP_UINT32(0x00000000);
+    //rt_kprintf("**********************CMD_PMD_SM_CONTROL********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_PMD_SM_CONTROL, &cmd_pmd_sm_control, sizeof(cmd_pmd_sm_control)) == FALSE)
+	{
+	        g_configed = 0;
+		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+	
+	cmd_eoc_control.LinkNo = SWAP_UINT32(ch);		//only send to master channel
+	cmd_eoc_control.Control = SWAP_UINT32(0x00000001);
+	cmd_eoc_control.Mode = SWAP_UINT32(0x00000000);
+	cmd_eoc_control.PerfStatusMode = SWAP_UINT32(0x00000000);
+	cmd_eoc_control.ForcePerfStatusMarker = SWAP_UINT32(0x00000000);
+	//rt_kprintf("**********************CMD_EOC_CONTROL********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_EOC_CONTROL, &cmd_eoc_control, sizeof(cmd_eoc_control)) == FALSE)
+	{
+	        g_configed = 0;
+		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+
+	cmd_linkcontrol.LinkNo = SWAP_UINT32(ch);			   //only send to master channel
+	cmd_linkcontrol.TX_Mode = SWAP_UINT32(0x00000001);
+	cmd_linkcontrol.RX_Mode = SWAP_UINT32(0x00000001);	
+	//rt_kprintf("**********************CMD_LINKCONTROL********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_LINKCONTROL, &cmd_linkcontrol, sizeof(cmd_linkcontrol)) == FALSE)
+	{
+	        g_configed = 0;
+		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+
+       cmd_pmd_control.LinkNo = SWAP_UINT32(ch);				 //only send to master channel
+	cmd_pmd_control.LinkControl = SWAP_UINT32(0x00000000);  //cpe set to 0(linkdown)
+	cmd_pmd_control.ActivationState = SWAP_UINT32(START_AFTER_INIT);
+	//rt_kprintf("**********************CMD_PMD_CONTROL********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_PMD_CONTROL, &cmd_pmd_control, sizeof(cmd_pmd_control)) == FALSE)
+	{
+	        g_configed = 0;
+		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+	
+
+	//===================================================================
+	//Use these 2 message to get PMD status and performance data.
+	cmd_pmd_statusget.LinkNo = SWAP_UINT32(ch);		 //only to master channel is OK. because slave channels will be same with master channel.
+	//rt_kprintf("**********************CMD_PMD_STATUSGET********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_PMD_STATUSGET, &cmd_pmd_statusget, sizeof(cmd_pmd_statusget)) == FALSE)
+	{
+	        g_configed = 0;
+		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+
+
+	cmd_pmd_pm_paramget.LinkNo = SWAP_UINT32(ch);			  //send to all channels in a bonding group. And need read CO and CPE performance data for every channel. If need to manage SRUs, also need request SRU performance data. But for SRU, after link up, need disovery SRUs on the span, please check in G.991.2 how to do it.
+	cmd_pmd_pm_paramget.Unit_ID = SWAP_UINT32(0x00000002);
+	//rt_kprintf("**********************CMD_PMD_PM_PARAMGET********************\r\n");
+	if (soc4e_send_idc_msg(device, CMD_PMD_PM_PARAMGET, &cmd_pmd_pm_paramget, sizeof(cmd_pmd_pm_paramget)) == FALSE)
+	{
+	        g_configed = 0;
+		TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ...reset \n\r"));
+	}
+
+       //init line status    
+	if(g_configed)
+		printf("CPE config success\r\n");
+
+EXIT:
+	return;
+}

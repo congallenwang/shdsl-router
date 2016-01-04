@@ -41,6 +41,16 @@ typedef const char*                 LPCSTR;
 
 #define HUGE
 
+#define SWAP_UINT32(x)  ( (((x) & 0xFF000000)>>24)  \
+                        | (((x) & 0x00FF0000)>>8)   \
+                        | (((x) & 0x0000FF00)<<8)   \
+                        | (((x) & 0x000000FF)<<24))
+#define SWAP_UINT16(x)  ( (((x) & 0xFF00)>>8) | (((x) & 0x00FF)<<8) )
+
+#define IFX_LITTLE_ENDIAN 0
+#define IFX_BIG_ENDIAN 1
+#define IFX_BYTE_ORDER  IFX_BIG_ENDIAN
+
 #define MAX_IRQ_NUM 8
 #define MAX_USER_TIMERS 10
 

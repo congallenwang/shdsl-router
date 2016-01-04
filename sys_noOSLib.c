@@ -309,6 +309,7 @@ LOCAL INT No_OS_TimerTickInit ()
     \see No_OS_ShutdownBoard()
 */
 /******************************************************************************/
+unsigned char g_pefdump=0;
 VOID No_OS_Init()
 {
    INT nRet;
@@ -340,7 +341,19 @@ VOID No_OS_Init()
    /* start user application */
    //if (nRet == SUCCESS)
    nRet = usrApp ();
-   /* shutdown board hardware */
+
+   g_pefdump=1;
+   
+   soc4e_CPE_init(0,0);
+
+    while(1)
+    {
+        soc4e_drv_poll(0, 0);
+        sleep(1);      
+        printf("sleep\r\n");
+    }
+
+   /* shutdown board hardware */   
    if (nRet == SUCCESS)
          nRet = No_OS_ShutdownBoard ();
    /* This function never returns */
