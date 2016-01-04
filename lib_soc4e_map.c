@@ -148,14 +148,14 @@ BOOL soc4e_drv_init(const BOARD_Configuration_t* pDeviceConfiguration)
 #endif
 
 #ifdef LINUX
-   if(soc4e_load_firmware("sdfe4.bin", &sdfe4_fw.pFwImage, &sdfe4_fw.size_byte))
+   if(soc4e_load_firmware("shdsl.bin", &sdfe4_fw.pFwImage, &sdfe4_fw.size_byte))
    {
       PRINTF("SOC4E: DSL firmware download from %s: %lu bytes\n\r", 
-                                                  "sdfe4.bin", 
+                                                  "shdsl.bin", 
                                                   sdfe4_fw.size_byte);
    }
 
-   if(soc4e_load_firmware("idc.bin", &idc_fw.pFwImage, &idc_fw.size_byte))
+   if(soc4e_load_firmware("IDC.bin", &idc_fw.pFwImage, &idc_fw.size_byte))
    {
       PRINTF("SOC4E: IDC firmware download from %s: %lu bytes\n\r", 
                                                   "idc.bin", 
@@ -196,7 +196,7 @@ BOOL soc4e_drv_init(const BOARD_Configuration_t* pDeviceConfiguration)
          continue;
       }
       
-      PRINTF("SOC4E[%02d]: Select interface %d\n\r", device, nInterfaceMode);
+      PRINTF("SOC4E[%02d]: Select interface %d,fd=%d\n\r", device, nInterfaceMode,fd[device]);
       /* Select interface */
       if ( ioctl( fd[ device ], FIO_PEF24628E_SET_IF, (UINT32)nInterfaceMode ) )
       {
@@ -245,14 +245,7 @@ BOOL soc4e_drv_init(const BOARD_Configuration_t* pDeviceConfiguration)
       }
    }
    
-   /* InventoryRequest */
-   TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("CMD_INVENTORYREQUEST\n\r"));
-   for (device=0; device<pDeviceConfiguration->nMaxDevNumber; device++)
-   {
-      if (soc4e_send_idc_msg(device, CMD_INVENTORYREQUEST, NULL, 0) == FALSE)
-         TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,
-            ("soc4e_send_idc_msg() failed ... \n\r"));
-   }         
+
 
    for(i=0;i<20;i++)
    {
@@ -275,6 +268,23 @@ BOOL soc4e_drv_init(const BOARD_Configuration_t* pDeviceConfiguration)
       WAIT(100000);      
    }
 
+      /* InventoryRequest */
+   TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("CMD_INVENTORYREQUEST\n\r"));
+   for (device=0; device<pDeviceConfiguration->nMaxDevNumber; device++)
+   {
+      if (soc4e_send_idc_msg(device, CMD_INVENTORYREQUEST, NULL, 0) == FALSE)
+         TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ... \n\r"));
+   }          
+
+      WAIT(100000);      
+      
+         /* InventoryRequest */
+   TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("CMD_INVENTORYREQUEST\n\r"));
+   for (device=0; device<pDeviceConfiguration->nMaxDevNumber; device++)
+   {
+      if (soc4e_send_idc_msg(device, CMD_INVENTORYREQUEST, NULL, 0) == FALSE)
+         TRACE(PEF24624_LIB,DBG_LEVEL_HIGH,("soc4e_send_idc_msg() failed ... \n\r"));
+   }           
    return ret;
 }
 
@@ -293,7 +303,7 @@ BOOL soc4e_drv_exit(VOID)
    /* Close device driver */
    for ( device = 0; device < PEF24628E_MAX_DEV_NUMBER; device++ )
    {
-      if( fd[ device ] <= 0)
+      if( fd[ device ] < 0)
          continue;
          
       close( fd[ device ] );
@@ -453,14 +463,14 @@ BOOL soc4e_drv_poll( UINT8 device, UINT16 idc_msg_id_expected )
    UINT32 retries = 100;
    UINT8 line = PEF24628E_MAX_LINES_PER_DEVICE * device;
    
-   if(fd[ device ] <= 0)
+   if(fd[ device ] < 0)
       return FALSE;
 
 
    
    while (--retries)
    {
-      WAIT(5000);
+      WAIT(50000);
 
       if( ioctl( fd[ device ], FIO_PEF24628E_POLL_CHECK, 0 ) == 0)
       {
@@ -600,7 +610,7 @@ BOOL soc4e_send_idc_msg(UINT8 device, UINT16 msg_id, VOID const * pSrc, UINT16 n
    UINT16 tc_id=0xFFFF;
    INT32 nBytes;
    
-   if(fd[ device ] <= 0)
+   if(fd[ device ] < 0)
    {
       PRINTF("SOC4E[%02d]: device not present\n\r", device);
       return FALSE;

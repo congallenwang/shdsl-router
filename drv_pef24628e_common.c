@@ -75,9 +75,9 @@ const char PEF24628E_WHATVERSION[] = DRV_PEF24628E_WHAT_STR;
 PEF24628E_DEV_t *Pef24628e_Devices[PEF24628E_MAX_DEV_NUMBER] = { NULL };
 
 /** trace group implementation */
-SOC4E_PRN_USR_MODULE_CREATE ( PEF24628E_DRV, DBG_LEVEL_HIGH );
+SOC4E_PRN_USR_MODULE_CREATE ( PEF24628E_DRV, DBG_LEVEL_LOW );
 /** log group implementation */
-SOC4E_PRN_INT_MODULE_CREATE ( PEF24628E_DRV, DBG_LEVEL_HIGH );
+SOC4E_PRN_INT_MODULE_CREATE ( PEF24628E_DRV, DBG_LEVEL_LOW );
 
 /* ============================= */
 /* Local function declaration    */
@@ -1474,7 +1474,7 @@ LOCAL IFX_boolean_t Pef24628e_Sci_Tx_Polling ( PEF24628E_DEV_t * pDev )
 #else
    counter = 5000000;
 #endif
-   
+   //printf("inthan\r\n");
    for (;(counter > 0) && ( !pDev->bTxAckReceived ); --counter)
    {
       Pef24628e_IntHandler ( pDev );
@@ -1487,6 +1487,7 @@ LOCAL IFX_boolean_t Pef24628e_Sci_Tx_Polling ( PEF24628E_DEV_t * pDev )
       SOC4E_USecSleep ( SCI_TX_POLLING_DELAY );
 #endif
    }
+    //  printf("inthan ****%d\r\n",!pDev->txErr);
 
    if ( counter == 0 )
    {
@@ -1958,7 +1959,7 @@ IFX_uint32_t Pef24628e_MPI_Init ( PEF24628E_DEV_t * pDev, PEF24628E_DEV_INIT_t *
    printf("try MPI init\r\n");
 
    pDev->uc_reg = ( PEF24628E_MPI_REG_t * ) pDevCfg->reg_offset;
-   pDev->uc_reg = ( PEF24628E_MPI_REG_t * )0x10000000; 
+   //pDev->uc_reg = ( PEF24628E_MPI_REG_t * )0x10000000; 
 /*
    if ( pDev->uc_reg == IFX_NULL )
    {
@@ -2026,7 +2027,7 @@ IFX_uint32_t Pef24628e_MPI_Init ( PEF24628E_DEV_t * pDev, PEF24628E_DEV_INIT_t *
    /********************************************************/
    /* Default Register settings */
    /*******************************************/
-   TRACE ( PEF24628E_DRV, DBG_LEVEL_HIGH, ( PREFIX "Default Register settings,%x" CRLF,pDev->uc_reg->SCI_CFG_H ) );
+   TRACE ( PEF24628E_DRV, DBG_LEVEL_HIGH, ( PREFIX "Default Register settings,%x" CRLF,&(pDev->uc_reg->SCI_CFG_H) ) );
 
    /* SCI_CFG */
    /* SCI_CFG_H: 0x44 */
@@ -3861,9 +3862,11 @@ IFX_boolean_t Pef24628e_Send_Aux_Msg ( PEF24628E_DEV_t * pDev, IFX_uint8_t reg, 
          /* polling mode */
          while ( retry-- )
          {
+            //   printf("pl retyr=%d\r\n",retry);    
             if ( Pef24628e_Sci_Tx_Polling ( pDev ) == IFX_TRUE )
             {
-               TRACE ( PEF24628E_DRV, DBG_LEVEL_NORMAL,
+               //printf("pl\r\n");
+               TRACE ( PEF24628E_DRV, DBG_LEVEL_HIGH,
                        ( PREFIX "LAST_AUX_VALUE = 0x%08X" CRLF, ( unsigned int ) pDev->last_aux_value ) );
                pDev->TxFifo.nBytes = 0;
                pDev->TxFifo.nSent = 1;
@@ -4275,10 +4278,10 @@ IFX_boolean_t Pef24628e_IDC_Start ( PEF24628E_DEV_t * pDev )
       
       TRACE ( PEF24628E_DRV, DBG_LEVEL_HIGH, 
             ( PREFIX "MCR_0 = 0x%02X, MCR_1 = 0x%02X, MCR_2 = 0x%02X, MCR_3 = 0x%02X" CRLF,
-               pDev->uc_reg->MCR_0, 
-               pDev->uc_reg->MCR_1, 
-               pDev->uc_reg->MCR_2, 
-               pDev->uc_reg->MCR_3 ) );
+               REG_GET(pDev->uc_reg->MCR_0), 
+               REG_GET(pDev->uc_reg->MCR_1), 
+               REG_GET(pDev->uc_reg->MCR_2), 
+               REG_GET(pDev->uc_reg->MCR_3) ) );
 
       return IFX_TRUE;
    }

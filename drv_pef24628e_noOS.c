@@ -378,7 +378,7 @@ INT Pef24628e_DevCreate ( void )
    DrvOp.read  = ( NO_OS_READ ) Pef24628e_Read;
    DrvOp.write = ( NO_OS_WRITE ) Pef24628e_Write;
 
-   SetTraceLevel ( PEF24628E_DRV, DBG_LEVEL_HIGH );
+   SetTraceLevel ( PEF24628E_DRV, DBG_LEVEL_NORMAL );
    SetLogLevel ( PEF24628E_DRV, DBG_LEVEL_HIGH );
 
    printf( "%s" CRLF, &PEF24628E_WHATVERSION[4] );

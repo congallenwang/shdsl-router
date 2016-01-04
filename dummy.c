@@ -94,16 +94,22 @@ int reg_init()
 void reg_write(unsigned char off, unsigned char v)
 {
       // int offset = (start_address) & 0xffff0000;
-      // map("/dev/mem", offset, 0x1000000);
-     unsigned char addr;
-     addr = off ^ 0x11;
-     printf("0x%x,0x%x,0x%x\r\n",addr,off,g_address);
-     //*((unsigned char *)g_address + addr) = (unsigned char)v;
+      // map("/dev/mem", offset, 0x1000000);      
+     volatile unsigned char addr;
+      
+     addr = (off-0x10000000) ^ 0b11;
+     //printf("[w]:0x%x(0x%x),0x%x\r\n",off,addr,v);
+     *((volatile unsigned char *)g_address + addr) = (unsigned char)v;
 }
 
 unsigned char reg_read(unsigned char off)
 {
-     unsigned char addr;
-     addr = off ^ 0x11;
-     return(*((unsigned char *)g_address + addr)) ;
+     volatile unsigned char addr;
+     unsigned char v;
+     
+     addr = (off-0x10000000) ^ 0b11;
+     v = *((volatile unsigned char *)g_address + addr);
+     
+     //printf("[r]:0x%x(0x%x),0x%x\r\n",off,addr,v);
+     return v;
 }
